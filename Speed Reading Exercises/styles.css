@@ -1,0 +1,56 @@
+.navigationbar {
+    background-color:#eeeeee;
+    line-height:20px;
+    height:20px;
+    width:100px;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding:5px;
+}
+.form{
+	text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding:10px;
+}
+.game{
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding:10px;
+    cursor:none;
+}
+.description {
+	position: absolute;
+	left:10px;
+	right:10px;
+    background-color:#aaaaaa;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding:10px;  
+}
+.footer {
+    position: absolute;
+    left:10px;
+    right:10px;
+    font-size: 80%;
+    background-color:#bbbbbb;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding:6px;
+    border: 1px solid black;
+}
+/* Support a widely-adopted but non-standard selector for text selection styles
+ * to achieve a better experience. See http://core.trac.wordpress.org/ticket/25898.
+ */
+::selection {
+    background: #24890d;
+    color: #fff;
+    text-shadow: none;
+}
+body {
+    font-family: 'Lato', sans-serif;
+}

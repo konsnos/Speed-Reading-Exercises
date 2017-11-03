@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Short-Term Visual Memory Training</title>
+<link rel="stylesheet" href="styles.css">
+<script type='text/javascript' src='cookies.js'></script>
+<link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+<h1 align="center">SHORT-TERM VISUAL MEMORY TRAINING</h1>
+</head>
+
+<body onload="javascript:updateForm()">
+
+<div class="navigationbar">
+  <a href="index.html">Home</a>
+</div>
+
+<br>
+<div style="border: 1px solid black; padding:10px; width: 300px" id="resultForm" class="form">
+  <div id="accuracy_S">Accuracy in S: 0/0</div>
+  <div id="accuracy_T">Accuracy in T: 0/0</div>
+  <div id="accuracy_U">Accuracy in U: 0/0</div>
+  <div id="accuracy_X">Accuracy in X: 0/0</div>
+  <div id="accuracy_L">Accuracy in L: 0/0</div>
+  <div id="accuracy_Total">Total accuracy: 100%</div>
+  <br>
+  <div id="all_tries">Tries: 0</div>
+  <div id="all_accuracy">Accuracy: 100%</div>
+</div>
+<br>
+<!-- font size 16 -->
+<div style="border: 1px solid black; padding:10px; width: 300px" id="form" class="form">
+  Saccade width <input type="text" value="400" name="width" size="5" id="saccadeWidth"> pixels. <br>
+  Number of symbols <input type="text" value="4" name="symbols" size="3" id="symbolsCount"> symbols. <br>
+  <br>
+  <input type="radio" name="types" value="1">S (novice)<br>
+  <input type="radio" name="types" value="2" checked="true">S/T (novice)<br>
+  <input type="radio" name="types" value="3">S/T/U (intermediate)<br>
+  <input type="radio" name="types" value="4">STUX (expert)<br>
+  <input type="radio" name="types" value="5">STUXL (expert)<br>
+  <input type="hidden" name="stage" value="1">
+  <br>
+  <input type="button" onclick="hideForm()" value="Flash">
+</div>
+
+<canvas id="myCanvas" width="400" height="400" style="border:1px solid #d3d3d3;" class="game">
+Your browser does not support the HTML5 canvas tag.</canvas>
+
+<div style="border: 1px solid black; padding:10px; width: 300px" id="answerForm" class="form">
+  <div id="letter_S">You saw <input type="text" value="0" name="width" size="2" id="letter_value_S"> letters S.</div>
+  <div id="letter_T">You saw <input type="text" value="0" name="width" size="2" id="letter_value_T"> letters T.</div>
+  <div id="letter_U">You saw <input type="text" value="0" name="width" size="2" id="letter_value_U"> letters U.</div>
+  <div id="letter_X">You saw <input type="text" value="0" name="width" size="2" id="letter_value_X"> letters X.</div>
+  <div id="letter_L">You saw <input type="text" value="0" name="width" size="2" id="letter_value_L"> letters L.</div>
+  <br>
+  <input type="button" onclick="submitAnswer()" value="Submit">
+</div>
+
+<br>
+<div id="timer" class="form">
+Minutes Active <div id="timer_minutes">0</div>
+<center>
+  <input type="button" onclick="resumeTimer()" value="Resume" id="resumeTimer">
+  <input type="button" onclick="pauseTimer()" value="Pause" id="pauseTimer">
+</center>
+</div>
+
+<br>
+<div id="description" class="description">
+In short term visual memory training you see several letter in front of you for a second, and then you need to count the number of occurrences of each letter. The more letter of more types you need to count over larger area, the harder the exercise. You can choose on which part you want to work (saccade size, size of memory, accuracy of memory). A normal superlearner should be able to read a flash of 9 letters of 3 types over saccade of 400.
+</div>
+<br><br><br><br>
+<div id="footer" class="footer">
+All excersises are cloned from the <a href="http://www.keytostudy.com/examplary-training-schedule/">Key to study website</a>.
+</div>
+
+<script>
+
+  window.onkeyup = onKeyUp;
+
+	var pickedLetters;
+  var symbolsCount;
+  var answers;
+  var seconds;
+  var timerRunning;
+  var timerVar;
+  var tries;
+  var cumulativeAcc; // Cumulative accuracy.
+  var state; // Current state of the form. 1 - form, 
+
+  /// Handles pressed keys. If pressed key is enter then it checks if it can be applied as a button to go to the next form.
+  function onKeyUp(e)
+  {
+    e = e || window.event;
+    var charCode = (typeof e.which == "number") ? e.which : e.keyCode;
+
+    if (charCode == 13 ) { // enter
+      switch(state)
+      {
+        case 1: // Form
+          hideForm();
+        break;
+        case 3:
+          submitAnswer();
+        break;
+        default:
+        break;
+      }
+    };
+  }
+
+  function updateForm()
+  {
+    var saccadeWidth = getCookie("saccadeWidth");
+    symbolsCount = getCookie("symbolsCount");
+    var symbolsChecked = getCookie("symbolsChecked");
+
+    if (saccadeWidth == "") { saccadeWidth = 400;}
+    if (symbolsCount == "") {symbolsCount = 4;}
+    if (symbolsChecked == "") {symbolsChecked = 2;}
+
+    document.getElementsByName("types")[symbolsChecked].checked = true;
+
+    document.getElementById("saccadeWidth").value = saccadeWidth;
+    document.getElementById("symbolsCount").value = symbolsCount;
+
+    document.getElementById("resultForm").style.display = 'none';
+    document.getElementById("form").style.display = 'block';
+    document.getElementById("myCanvas").style.display = 'none';
+    document.getElementById("answerForm").style.display = "none";
+
+    seconds = 0;
+    timerRunning = false;
+    document.getElementById("pauseTimer").style.display = "none";
+
+    tries = 0;
+    cumulativeAcc = 0;
+
+    state = 1;
+  }
+
+  function getSaccadeWidth()
+  {
+    return document.getElementById("saccadeWidth").value;
+  }
+
+  function getSymbolsNumber()
+  {
+    return document.getElementById("symbolsCount").value;
+  }
+
+  /// Sets saccade and symbols count in cookies.
+  /// Finds which characters radio button is selected.
+  /// Hides result and form divs.
+  /// Gets 2d canvas.
+  /// Shows random chars from the picked ones, for the count they were given.
+  function hideForm() 
+  {
+    var saccadeWidth = getSaccadeWidth();
+    setCookie("saccadeWidth", saccadeWidth, true);
+    symbolsCount = getSymbolsNumber();
+    setCookie("symbolsCount", symbolsCount, true);
+
+    var types = document.getElementsByName("types");
+    var symbolsChecked = 0;
+    for(i = 0;i<types.length;i++)
+    {
+      if (types[i].checked){
+        symbolsChecked = i;
+        break;
+      }
+    }
+    setCookie("symbolsChecked", i, true);
+
+    document.getElementById("resultForm").style.display = 'none';
+    document.getElementById("form").style.display = 'none';
+
+    var canvas = document.getElementById("myCanvas");
+    var context = canvas.getContext('2d');
+    canvas.width = saccadeWidth;
+    canvas.height = saccadeWidth;
+    context.clearRect ( 0 , 0 , canvas.width, canvas.height );
+    context.font = "bold 16px Lato, sans-serif";
+    canvas.style.display = 'block';
+
+    /// SHOW CHARACTERS
+    var chars;
+    switch (i) 
+    {
+      case 0:
+        chars = ['S'];
+        break;
+      case 1:
+        chars = ['S','T'];
+        break;
+      case 2:
+        chars = ['S','T','U'];
+        break;
+      case 3:
+        chars = ['S','T','U','X'];
+        break;
+      case 4:
+        chars = ['S','T','U','X','L'];
+        break;
+      default:
+        console.log("Radio selected is " + i);
+        chars = ['S'];
+        break;
+    }
+    
+    pickedLetters = new Array(chars.length);
+    for(i = 0;i<pickedLetters.length;i++)
+    {
+      pickedLetters[i] = 0;
+    }
+    for (i = 0; i < symbolsCount; i++) 
+    {
+      var charIndex = Math.floor(Math.random() * chars.length);
+      context.fillText(chars[charIndex], (Math.random() * (canvas.width - 20)) + 10, (Math.random() * (canvas.height - 20)) + 10);
+      pickedLetters[charIndex]++;
+    }
+
+    state = 2;
+
+    // hide canvas after half second and show answer form.
+    setTimeout(showAnswerForm, 500);
+  }
+
+  /// Checks correct answers.
+  function submitAnswer()
+  {
+    var pickedLettersLength = pickedLetters.length;
+    answers = [parseInt(document.getElementById("letter_value_S").value), parseInt(document.getElementById("letter_value_T").value), parseInt(document.getElementById("letter_value_U").value), parseInt(document.getElementById("letter_value_X").value), parseInt(document.getElementById("letter_value_L").value)];
+    // Check if an element got erased and make it 0
+    for (var i = answers.length - 1; i >= 0; i--)
+    {
+      if (isNaN(answers[i]))
+      {
+        answers[i] = 0;
+      }
+    }
+
+    showResultsForm();
+    showForm();
+  }
+
+  function showAnswerForm()
+  {
+    document.getElementById("myCanvas").style.display = 'none';
+    document.getElementById("answerForm").style.display = 'block';
+
+    document.getElementById("letter_value_S").value = 0;
+    document.getElementById("letter_value_T").value = 0;
+    document.getElementById("letter_value_U").value = 0;
+    document.getElementById("letter_value_X").value = 0;
+    document.getElementById("letter_value_L").value = 0;
+    var pickedLettersLength = pickedLetters.length;
+
+    for (var i = 0; i < 5; i++) {
+      var inputLtr;
+      switch(i)
+      {
+        case 0: // S
+          inputLtr = document.getElementById("letter_S");
+          break;
+        case 1: // T
+          inputLtr = document.getElementById("letter_T");
+          break;
+        case 2: // U
+          inputLtr = document.getElementById("letter_U");
+          break;
+        case 3: // X
+          inputLtr = document.getElementById("letter_X");
+          break;
+        case 4: // L
+          inputLtr = document.getElementById("letter_L");
+          break;
+        default:
+          console.log("Something is wrong with index " + i);
+          continue;
+      }
+
+      if (i<pickedLettersLength) {
+        inputLtr.style.display = "block";
+      }
+      else {
+        inputLtr.style.display = "none";
+      }
+    }
+
+    document.getElementById("letter_value_S").focus();
+
+    state = 3;
+  }
+
+  /// Hides answer form.
+  /// TODO: should show accuracy form.
+  /// Shows selection form.
+  function showForm()
+  {
+    document.getElementById("answerForm").style.display = 'none';
+    document.getElementById("form").style.display = 'block';
+
+    state = 1;
+  }
+
+  /// Updates text on result form.
+  /// Shows result form.
+  function showResultsForm()
+  {
+    var pickedLettersLength = pickedLetters.length;
+    var successes = 0;
+    var letterCount = 0;
+
+    for (var i = 0; i < 5; i++)
+    {
+      var resultStr;
+      var letterChar;
+      switch(i)
+      {
+        case 0: // S
+          letterChar = "S";
+          resultStr = document.getElementById("accuracy_S");
+          break;
+        case 1: // T
+          letterChar = "T";
+          resultStr = document.getElementById("accuracy_T");
+          break;
+        case 2: // U
+          letterChar = "U";
+          resultStr = document.getElementById("accuracy_U");
+          break;
+        case 3: // X
+          letterChar = "X";
+          resultStr = document.getElementById("accuracy_X");
+          break;
+        case 4: // L
+          letterChar = "L";
+          resultStr = document.getElementById("accuracy_L");
+          break;
+        default:
+          letterChar = "";
+          console.log("Something is wrong with index " + i);
+          continue;
+      }
+
+      if (i<pickedLettersLength) 
+      { 
+        resultStr.innerHTML = "Accuracy for " + letterChar + ": " + answers[i] + "/" + pickedLetters[i];
+        resultStr.style.display = "block";
+
+        /// Calculate success ratio.
+        if (answers[i] <= pickedLetters[i])
+        {
+          successes += answers[i];
+          letterCount += pickedLetters[i];
+        }
+        else
+        {
+          successes += pickedLetters[i];
+          letterCount += answers[i];
+        }
+      }
+      else
+      {
+        resultStr.style.display = "none";
+      }
+    }
+
+    var successRatio = successes / letterCount * 100;
+    tries++;
+    cumulativeAcc += successRatio;
+    document.getElementById("accuracy_Total").innerHTML = "Total accuracy: " + Math.round(successRatio) + "%";
+    document.getElementById("all_tries").innerHTML = "Tries: " + tries;
+    document.getElementById("all_accuracy").innerHTML = "Accuracy: " + Math.round(cumulativeAcc / tries) + "%";
+
+    document.getElementById("resultForm").style.display = "block";
+  }
+
+  function resumeTimer()
+  {
+    timerRunning = true;
+    document.getElementById("pauseTimer").style.display = "block";
+    document.getElementById("resumeTimer").style.display = "none";
+    timerVar = setInterval(timerInterval, 1000);
+  }
+
+  function pauseTimer()
+  {
+    timerRunning = false;
+    document.getElementById("pauseTimer").style.display = "none";
+    document.getElementById("resumeTimer").style.display = "block";
+    clearTimeout(timerVar);
+  }
+
+  function timerInterval()
+  {
+    seconds++;
+    document.getElementById("timer_minutes").innerHTML = Math.floor(seconds / 60);
+  }
+</script>
+</body>
+</html>
